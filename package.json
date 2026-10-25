@@ -1,8 +1,8 @@
 {
   "name": "painel-perifericos",
-  "productName": "Painel de Periféricos",
-  "version": "1.0.0",
-  "description": "Mostra a configuração do mouse Razer e do teclado Marvo",
+  "productName": "Painel de PerifÃ©ricos",
+  "version": "1.1.0",
+  "description": "Mostra a configuraÃ§Ã£o do mouse Razer e do teclado Marvo",
   "author": "Hugo",
   "main": "electron/main.cjs",
   "private": true,
@@ -28,7 +28,7 @@
   },
   "build": {
     "appId": "com.hugo.painelperifericos",
-    "productName": "Painel de Periféricos",
+    "productName": "Painel de PerifÃ©ricos",
     "directories": { "output": "release", "buildResources": "build" },
     "files": ["dist/**", "electron/**", "package.json"],
     "asarUnpack": ["node_modules/koffi/**"],
@@ -43,7 +43,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Painel de Periféricos",
+      "shortcutName": "Painel de PerifÃ©ricos",
       "artifactName": "Painel-de-Perifericos-Instalador-${version}.exe"
     },
     "portable": {

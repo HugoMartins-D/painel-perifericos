@@ -5,15 +5,15 @@ import DeviceTable from "./components/DeviceTable.jsx";
 import icone from "./icon.png";
 
 export default function App() {
-  const [dados, setDados] = useState({ dispositivos: null, windows: null, razer: null });
+  const [dados, setDados] = useState({ dispositivos: null, windows: null, razer: null, marvo: null });
   const [carregando, setCarregando] = useState(false);
   const [atualizadoEm, setAtualizadoEm] = useState(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
     const hw = window.hardware;
-    const [dispositivos, windows, razer] = await Promise.all([hw.dispositivos(), hw.windows(), hw.razer()]);
-    setDados({ dispositivos, windows, razer });
+    const [dispositivos, windows, razer, marvo] = await Promise.all([hw.dispositivos(), hw.windows(), hw.razer(), hw.marvo()]);
+    setDados({ dispositivos, windows, razer, marvo });
     setAtualizadoEm(new Date());
     setCarregando(false);
   }, []);
@@ -40,7 +40,7 @@ export default function App() {
 
       <main>
         <RazerCard dispositivo={razerDev} razer={dados.razer} windows={dados.windows} carregando={carregando} />
-        <MarvoCard dispositivo={marvoDev} windows={dados.windows} />
+        <MarvoCard dispositivo={marvoDev} windows={dados.windows} marvo={dados.marvo} />
         <DeviceTable dispositivos={dados.dispositivos} />
       </main>
     </>

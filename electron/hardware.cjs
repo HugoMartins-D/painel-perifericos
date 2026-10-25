@@ -192,4 +192,188 @@ async function configRazer() {
   }
 }
 
-module.exports = { configWindows, dispositivos, configRazer };
+// ---------------------------------------------------------------- Marvo (perfil do app oficial)
+// Formato descoberto por engenharia reversa do "MARVO KG985W Driver" (OemDrv.exe):
+//  - Dev\kb\KB.ini descreve o teclado: teclas [KEY] (retângulo, código padrão, nº do LED),
+//    atalhos Fn de fábrica [FN1] e a lista de efeitos de luz (LedOptN).
+//  - %LOCALAPPDATA%\BYCOMBO4\<Title>\profile.dct guarda o perfil salvo pelo app:
+//      0x000C  nome do perfil (UTF-16)
+//      0x003F  camada normal: 16 bytes por tecla Kn  [tipo, modificador, código VK, …]
+//      0x093F  camada Fn1:   16 bytes por tecla Kn  [0x09, …, função uint32 LE em +5]
+//      0x123F  camada Fn2:   idem
+//      0x2440  efeito de luz salvo (índice LedOpt)
+//      0x244B  cores personalizadas: 4 bytes por tecla Kn  [0, R, G, B]
+//      0x2F8B  ajustes de cada efeito: 36 bytes  [0, brilho, velocidade, colorido, 8 × (0,R,G,B)]
+const fs = require("node:fs");
+const pathMod = require("node:path");
+
+const EFEITOS_MARVO = [
+  "", "Fixo", "Respiração", "Arco-íris", "Flash", "Gotas de chuva", "Roda arco-íris", "Ondas brilhantes",
+  "Estrelas piscando", "Sombra sumindo", "Cobrinha retrô", "Neon", "Reação ao toque", "Onda senoidal",
+  "Varredura", "Moinho girando", "Cascata colorida", "Florescer", "Tempestade girando", "Personalizado", "Desligado",
+];
+
+const HID_TECLAS = {
+  0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Espaço", 0x2d: "-", 0x2e: "=", 0x2f: "[",
+  0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock",
+  0x46: "PrintScreen", 0x47: "ScrollLock", 0x48: "Pause", 0x49: "Insert", 0x4a: "Home", 0x4b: "PgUp", 0x4c: "Delete",
+  0x4d: "End", 0x4e: "PgDn", 0x4f: "→", 0x50: "←", 0x51: "↓", 0x52: "↑",
+};
+const nomeHid = (k) => {
+  if (k >= 0x04 && k <= 0x1d) return String.fromCharCode(0x41 + k - 0x04);
+  if (k >= 0x1e && k <= 0x26) return String(k - 0x1d);
+  if (k === 0x27) return "0";
+  if (k >= 0x3a && k <= 0x45) return `F${k - 0x39}`;
+  return HID_TECLAS[k] || `tecla 0x${k.toString(16)}`;
+};
+const MULTIMIDIA = {
+  0x6f: "Brilho da tela +", 0x70: "Brilho da tela −", 0xb5: "Próxima faixa", 0xb6: "Faixa anterior", 0xb7: "Parar",
+  0xcd: "Tocar / pausar", 0xe2: "Mudo", 0xe9: "Volume +", 0xea: "Volume −", 0x183: "Player de mídia", 0x18a: "E-mail",
+  0x192: "Calculadora", 0x194: "Meu computador", 0x221: "Pesquisar", 0x223: "Página inicial", 0x22a: "Favoritos",
+};
+const LUZ = { 0x0800: "Trocar efeito de luz", 0x0803: "Brilho da luz", 0x0804: "Velocidade da luz" };
+
+function nomeFuncaoFn(v) {
+  const tipo = v >>> 24;
+  if (tipo === 0x02) return MULTIMIDIA[v & 0xffff] || `Multimídia (0x${(v & 0xffff).toString(16)})`;
+  if (tipo === 0x00) {
+    const mods = (v >>> 16) & 0xff;
+    const nomes = [[0x01, "Ctrl"], [0x02, "Shift"], [0x04, "Alt"], [0x08, "Win"]].filter(([b]) => mods & b).map(([, n]) => n);
+    return [...nomes, nomeHid(v & 0xff)].join(" + ");
+  }
+  if (tipo === 0x08) {
+    const grupo = (v >>> 16) & 0xffff;
+    const dir = (v >>> 8) & 0xff;
+    const base = LUZ[grupo] || `Controle de luz (0x${grupo.toString(16)})`;
+    return dir === 1 ? `${base} +` : dir === 2 ? `${base} −` : base;
+  }
+  if (tipo === 0x07) return `Função interna do teclado (0x${(v & 0xff).toString(16)})`;
+  return `0x${v.toString(16)}`;
+}
+
+const NOMES_MODIFICADOR = { 0x01: "LCtrl", 0x02: "LShift", 0x04: "LAlt", 0x08: "LWin", 0x10: "RCtrl", 0x20: "RShift", 0x40: "RAlt", 0x80: "RWin" };
+
+function lerIni(caminho) {
+  const secoes = {};
+  let atual = null, comentario = null;
+  for (const linha of fs.readFileSync(caminho, "latin1").split(/\r?\n/)) {
+    const s = linha.trim();
+    const sec = s.match(/^\[(.+)\]$/);
+    if (sec) { atual = secoes[sec[1]] = { valores: {}, comentarios: {} }; continue; }
+    if (!atual) continue;
+    if (s.startsWith(";")) { comentario = s.slice(1).trim(); continue; }
+    const kv = s.match(/^([^=\/]+?)\s*=\s*(.*)$/);
+    if (kv) {
+      atual.valores[kv[1]] = kv[2];
+      if (comentario) atual.comentarios[kv[1]] = comentario;
+      comentario = null;
+    }
+  }
+  return secoes;
+}
+
+async function pastaMarvo() {
+  const out = await powershell(
+    "Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' -ErrorAction SilentlyContinue " +
+    "| Where-Object { $_.DisplayName -match 'MARVO' -and $_.InstallLocation } | Select-Object -First 1 -ExpandProperty InstallLocation");
+  const candidatos = [out.trim()];
+  for (const raiz of ["C:\\Program Files (x86)", "C:\\Program Files"]) {
+    try { for (const d of fs.readdirSync(raiz)) if (/^MARVO/i.test(d)) candidatos.push(pathMod.join(raiz, d)); } catch {}
+  }
+  return candidatos.find((c) => c && fs.existsSync(pathMod.join(c, "Dev", "kb", "KB.ini"))) || null;
+}
+
+async function configMarvo() {
+  const pasta = await pastaMarvo();
+  if (!pasta) return { ok: false, erro: "O programa oficial da Marvo não foi encontrado neste PC." };
+
+  const kb = lerIni(pathMod.join(pasta, "Dev", "kb", "KB.ini"));
+  const cfg = lerIni(pathMod.join(pasta, "Cfg.ini"));
+  const opt = kb.OPT.valores;
+  const titulo = cfg.OPT?.valores.Title || opt.Name;
+  const appdir = cfg.OPT?.valores.Appdir || "BYCOMBO4";
+
+  // Teclas do layout (KB.ini): Kn = x1,y1,x2,y2, tipo, VK, ?, nº LED
+  const teclas = Object.entries(kb.KEY.valores).map(([k, v]) => {
+    const p = v.split(",").map((x) => parseInt(x.trim(), x.trim().startsWith("0x") ? 16 : 10));
+    return { n: Number(k.slice(1)), nome: kb.KEY.comentarios[k] || k, rect: p.slice(0, 4), vkPadrao: p[5], led: p[7] };
+  }).sort((a, b) => a.n - b.n);
+
+  const info = {
+    ok: true,
+    modelo: opt.ShortName || opt.Name,
+    nomeDriver: titulo,
+    pasta,
+    usb: { cabo: `${(opt.VID || "").replace("0x", "").toUpperCase()}:${(opt.PID || "").replace("0x", "").toUpperCase()}`,
+      semFio: `${(opt.VID_Wireless || "").replace("0x", "").toUpperCase()}:${(opt.PID_Wireless || "").replace("0x", "").toUpperCase()}` },
+    firmwareEsperado: opt.Fw,
+    dormirAposSeg: opt.SleepTime ? Number(opt.SleepTime) : null,
+    teclas: teclas.map(({ n, nome, rect }) => ({ n, nome, rect })),
+  };
+
+  const arqPerfil = pathMod.join(process.env.LOCALAPPDATA, appdir, titulo, "profile.dct");
+  if (!fs.existsSync(arqPerfil)) {
+    info.perfil = null;
+    info.avisoPerfil = "O app da Marvo ainda não salvou nenhum perfil neste PC.";
+    return info;
+  }
+  const b = fs.readFileSync(arqPerfil);
+  const u32 = (o) => b.readUInt32LE(o);
+
+  const perfil = {
+    nome: b.subarray(0x0c, 0x3c).toString("utf16le").split("\0")[0],
+    atualizadoEm: fs.statSync(arqPerfil).mtime.toISOString(),
+    remapeadas: [],
+    atalhosFn: [],
+    coresTeclas: {},
+  };
+
+  for (const t of teclas) {
+    // Camada normal: compara com o padrão de fábrica
+    const r = 0x3f + 16 * (t.n - 1);
+    if (r + 16 <= b.length && b[r] === 0x02) {
+      const mod = b[r + 1], vk = b[r + 2];
+      const atual = mod ? NOMES_MODIFICADOR[mod] : vk;
+      const padraoMod = [0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0x5b, 0x5c].includes(t.vkPadrao);
+      if (!padraoMod && vk !== t.vkPadrao) perfil.remapeadas.push({ tecla: t.nome, para: `VK 0x${vk.toString(16)}` });
+      if (padraoMod && !mod) perfil.remapeadas.push({ tecla: t.nome, para: `VK 0x${atual.toString(16)}` });
+    } else if (r + 16 <= b.length && b[r] === 0x00 && b.subarray(r, r + 16).every((x) => x === 0)) {
+      perfil.remapeadas.push({ tecla: t.nome, para: "Desativada" });
+    }
+    // Camadas Fn1 / Fn2
+    for (const [camada, base] of [["Fn", 0x93f], ["Fn2", 0x123f]]) {
+      const o = base + 16 * (t.n - 1);
+      if (o + 16 <= b.length && b[o] === 0x09) {
+        perfil.atalhosFn.push({ camada, tecla: t.nome, funcao: nomeFuncaoFn(u32(o + 5)) });
+      }
+    }
+    // Cores personalizadas
+    const c = 0x244b + 4 * (t.n - 1);
+    if (c + 4 <= b.length && (b[c + 1] || b[c + 2] || b[c + 3])) {
+      perfil.coresTeclas[t.n] = `#${b.subarray(c + 1, c + 4).toString("hex")}`;
+    }
+  }
+
+  // Efeitos de luz (LedOpt1..20 do KB.ini, na mesma ordem dos blocos de 36 bytes)
+  const efeitoSalvo = b[0x2440];
+  perfil.efeitoSalvo = { indice: efeitoSalvo, nome: EFEITOS_MARVO[efeitoSalvo] || `Efeito ${efeitoSalvo}` };
+  perfil.efeitos = [];
+  for (let i = 1; i <= 20; i++) {
+    const ledOpt = (opt[`LedOpt${i}`] || "").split(",").map((x) => Number(x.trim()));
+    const o = 0x2f8b + 36 * (i - 1);
+    if (o + 36 > b.length || !ledOpt[0] && i !== 20) continue;
+    const [, , temVelocidade, temBrilho, , , temCor] = ledOpt;
+    perfil.efeitos.push({
+      indice: i,
+      nome: EFEITOS_MARVO[i],
+      brilho: temBrilho ? b[o + 1] : null,
+      velocidade: temVelocidade ? b[o + 2] : null,
+      colorido: temCor ? b[o + 3] === 1 : null,
+      cor: temCor ? `#${b.subarray(o + 5, o + 8).toString("hex")}` : null,
+    });
+  }
+  info.perfil = perfil;
+  return info;
+}
+
+module.exports = { configWindows, dispositivos, configRazer, configMarvo };

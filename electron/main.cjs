@@ -36,6 +36,7 @@ const seguro = (fn) => async () => {
 ipcMain.handle("hw:dispositivos", seguro(hardware.dispositivos));
 ipcMain.handle("hw:windows", seguro(hardware.configWindows));
 ipcMain.handle("hw:razer", seguro(hardware.configRazer));
+ipcMain.handle("hw:marvo", seguro(hardware.configMarvo));
 
 app.on("second-instance", () => {
   if (janela) { if (janela.isMinimized()) janela.restore(); janela.focus(); }
