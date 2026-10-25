@@ -9,10 +9,22 @@ Lê a configuração dos dois aparelhos e permite mudar DPI, estágios, polling 
 
 Na página de download:
 
-- **Painel-de-Perifericos-Instalador-1.2.0.exe** — instala no PC, cria atalho na Área de Trabalho e no Menu Iniciar.
-- **Painel-de-Perifericos-Portatil-1.2.0.exe** — abre direto, sem instalar (a primeira abertura demora uns 20–30 s).
+- **Painel-de-Perifericos-Instalador-1.3.0.exe** — instala no PC, cria atalho na Área de Trabalho e no Menu Iniciar.
+- **Painel-de-Perifericos-Portatil-1.3.0.exe** — abre direto, sem instalar (a primeira abertura demora uns 20–30 s).
 
 Se o mouse não for lido, feche o Razer Synapse ou mexa no mouse e clique em **Atualizar dados**.
+
+## Marcas suportadas
+
+| Marca | O que o painel faz |
+|---|---|
+| **Razer** (mouses) | Lê e controla DPI, estágios, polling rate, bateria e tempo para desligar |
+| **Logitech** (cabo, Unifying, Bolt, Lightspeed) | Lê nome, bateria, DPI, polling rate e firmware (protocolo HID++) |
+| **Marvo** (com o app oficial instalado) | Lê o perfil: efeito de luz, cores das teclas, atalhos Fn |
+| **Redragon, Attack Shark, K-Snake** e outras | Reconhece o aparelho, o nome e a conexão; a configuração interna ainda não é lida |
+| Aparelhos **Bluetooth** | Mostra a bateria quando o Windows informa |
+
+Qualquer mouse ou teclado funciona com os testes ao vivo (polling, botões, teclas).
 
 ## Desenvolver
 
@@ -29,6 +41,7 @@ o gerador do instalador (NSIS) falha quando o caminho da pasta é muito longo.
 
 - `electron/hardware.cjs` — lê o Windows (user32), o mouse Razer (hid.dll, protocolo openrazer) via koffi
   e o perfil salvo pelo app oficial da Marvo (`profile.dct`)
+- `electron/perifericos.cjs` / `logitech.cjs` — lista todos os periféricos (node-hid) e lê aparelhos Logitech
 - `electron/main.cjs` / `preload.cjs` — janela do app e ponte segura para a tela
 - `src/` — a tela em React (`App.jsx` e `components/`)
 

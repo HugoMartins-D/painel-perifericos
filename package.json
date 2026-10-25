@@ -1,7 +1,7 @@
 {
   "name": "painel-perifericos",
   "productName": "Painel de PerifÃ©ricos",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Mostra a configuraÃ§Ã£o do mouse Razer e do teclado Marvo",
   "author": "Hugo",
   "main": "electron/main.cjs",
@@ -13,7 +13,8 @@
     "dist": "vite build && electron-builder --win"
   },
   "dependencies": {
-    "koffi": "^2.12.0"
+    "koffi": "^2.12.0",
+    "node-hid": "^3.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",
@@ -29,14 +30,34 @@
   "build": {
     "appId": "com.hugo.painelperifericos",
     "productName": "Painel de PerifÃ©ricos",
-    "directories": { "output": "release", "buildResources": "build" },
-    "files": ["dist/**", "electron/**", "package.json"],
-    "asarUnpack": ["node_modules/koffi/**"],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/node-hid/**"
+    ],
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -48,6 +69,7 @@
     },
     "portable": {
       "artifactName": "Painel-de-Perifericos-Portatil-${version}.exe"
-    }
+    },
+    "npmRebuild": false
   }
 }

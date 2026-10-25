@@ -418,4 +418,14 @@ async function configMarvo() {
   return info;
 }
 
-module.exports = { configWindows, dispositivos, configRazer, aplicarRazer, configMarvo };
+// IDs USB do teclado Marvo instalado (cabo e receptor), para reconhecê-lo na lista geral.
+async function idsMarvo() {
+  const pasta = await pastaMarvo();
+  if (!pasta) return {};
+  const opt = lerIni(pathMod.join(pasta, "Dev", "kb", "KB.ini")).OPT.valores;
+  const id = (v, p) => v && p ? `${v.replace("0x", "").toUpperCase().padStart(4, "0")}:${p.replace("0x", "").toUpperCase().padStart(4, "0")}` : null;
+  const nome = `Marvo ${opt.ShortName || ""}`.trim();
+  return Object.fromEntries([id(opt.VID, opt.PID), id(opt.VID_Wireless, opt.PID_Wireless)].filter(Boolean).map((k) => [k, nome]));
+}
+
+module.exports = { configWindows, dispositivos, configRazer, aplicarRazer, configMarvo, idsMarvo };

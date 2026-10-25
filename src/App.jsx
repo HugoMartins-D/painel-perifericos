@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import RazerCard from "./components/RazerCard.jsx";
 import MarvoCard from "./components/MarvoCard.jsx";
-import DeviceTable from "./components/DeviceTable.jsx";
+import PerifericosCard from "./components/PerifericosCard.jsx";
 import icone from "./icon.png";
 
 export default function App() {
-  const [dados, setDados] = useState({ dispositivos: null, windows: null, razer: null, marvo: null });
+  const [dados, setDados] = useState({ dispositivos: null, windows: null, razer: null, marvo: null, outros: null });
   const [carregando, setCarregando] = useState(false);
   const [atualizadoEm, setAtualizadoEm] = useState(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
     const hw = window.hardware;
-    const [dispositivos, windows, razer, marvo] = await Promise.all([hw.dispositivos(), hw.windows(), hw.razer(), hw.marvo()]);
-    setDados({ dispositivos, windows, razer, marvo });
+    // Razer e Logitech abrem o HID em sequência para não disputarem o mesmo aparelho.
+    const [dispositivos, windows, marvo] = await Promise.all([hw.dispositivos(), hw.windows(), hw.marvo()]);
+    const razer = await hw.razer();
+    const outros = await hw.outros();
+    setDados({ dispositivos, windows, razer, marvo, outros });
     setAtualizadoEm(new Date());
     setCarregando(false);
   }, []);
@@ -48,7 +51,7 @@ export default function App() {
         <RazerCard dispositivo={razerDev} razer={dados.razer} windows={dados.windows} carregando={carregando}
           aoAplicar={recarregarRazer} />
         <MarvoCard dispositivo={marvoDev} windows={dados.windows} marvo={dados.marvo} />
-        <DeviceTable dispositivos={dados.dispositivos} />
+        <PerifericosCard outros={dados.outros} />
       </main>
     </>
   );

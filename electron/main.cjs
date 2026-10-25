@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const path = require("node:path");
 const hardware = require("./hardware.cjs");
+const { outrosPerifericos } = require("./perifericos.cjs");
 
 // Evita abrir duas janelas do programa ao mesmo tempo.
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -37,6 +38,7 @@ ipcMain.handle("hw:dispositivos", seguro(hardware.dispositivos));
 ipcMain.handle("hw:windows", seguro(hardware.configWindows));
 ipcMain.handle("hw:razer", seguro(hardware.configRazer));
 ipcMain.handle("hw:marvo", seguro(hardware.configMarvo));
+ipcMain.handle("hw:outros", seguro(async () => outrosPerifericos(await hardware.idsMarvo().catch(() => ({})))));
 ipcMain.handle("hw:razer:aplicar", async (_e, pedido) => {
   try { return await hardware.aplicarRazer(pedido); } catch (e) { return { ok: false, erro: e.message }; }
 });
