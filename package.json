@@ -1,7 +1,7 @@
 {
   "name": "painel-perifericos",
   "productName": "Painel de PerifÃ©ricos",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Mostra a configuraÃ§Ã£o do mouse Razer e do teclado Marvo",
   "author": "Hugo",
   "main": "electron/main.cjs",

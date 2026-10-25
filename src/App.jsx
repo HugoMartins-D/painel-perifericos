@@ -20,6 +20,12 @@ export default function App() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  // Depois de gravar no mouse, relê só o Razer para mostrar os valores que ficaram salvos.
+  const recarregarRazer = useCallback(async () => {
+    const razer = await window.hardware.razer();
+    setDados((d) => ({ ...d, razer }));
+  }, []);
+
   const lista = Array.isArray(dados.dispositivos) ? dados.dispositivos : [];
   const razerDev = lista.find((d) => d.vid === "1532");
   const marvoDev = lista.find((d) => d.fabricante.startsWith("Marvo"))
@@ -39,7 +45,8 @@ export default function App() {
       </header>
 
       <main>
-        <RazerCard dispositivo={razerDev} razer={dados.razer} windows={dados.windows} carregando={carregando} />
+        <RazerCard dispositivo={razerDev} razer={dados.razer} windows={dados.windows} carregando={carregando}
+          aoAplicar={recarregarRazer} />
         <MarvoCard dispositivo={marvoDev} windows={dados.windows} marvo={dados.marvo} />
         <DeviceTable dispositivos={dados.dispositivos} />
       </main>

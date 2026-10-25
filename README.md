@@ -1,7 +1,7 @@
 # Painel de Periféricos
 
 Programa para Windows (React + Electron) que mostra a configuração do mouse Razer e do teclado Marvo.
-Só lê informações — nada é gravado nos aparelhos.
+Lê a configuração dos dois aparelhos e permite mudar DPI, estágios, polling rate e tempo para desligar do mouse Razer.
 
 ## Baixar
 
@@ -9,8 +9,8 @@ Só lê informações — nada é gravado nos aparelhos.
 
 Na página de download:
 
-- **Painel-de-Perifericos-Instalador-1.1.0.exe** — instala no PC, cria atalho na Área de Trabalho e no Menu Iniciar.
-- **Painel-de-Perifericos-Portatil-1.1.0.exe** — abre direto, sem instalar (a primeira abertura demora uns 20–30 s).
+- **Painel-de-Perifericos-Instalador-1.2.0.exe** — instala no PC, cria atalho na Área de Trabalho e no Menu Iniciar.
+- **Painel-de-Perifericos-Portatil-1.2.0.exe** — abre direto, sem instalar (a primeira abertura demora uns 20–30 s).
 
 Se o mouse não for lido, feche o Razer Synapse ou mexa no mouse e clique em **Atualizar dados**.
 

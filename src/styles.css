@@ -53,6 +53,21 @@ h3 { margin: 22px 0 10px; font-size: 13px; text-transform: uppercase; letter-spa
 .log { font: 12.5px Consolas, monospace; color: var(--muted); height: 130px; overflow: auto; background: #12151a; border-radius: 8px; padding: 8px 10px; margin-top: 8px; white-space: pre; }
 
 .menor { font-size: 15px; }
+.controles { background: #12151a; border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.estagios-edit { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.estagio-edit { display: flex; align-items: center; gap: 6px; background: var(--tile); border: 1px solid transparent; border-radius: 8px; padding: 6px 8px; }
+.estagio-edit.on { border-color: var(--razer); }
+.estagio-edit .num { color: var(--muted); font-size: 12px; }
+.estagio-edit input[type=number] { width: 78px; }
+.estagio-edit input[type=radio] { accent-color: var(--razer); margin: 0; }
+input[type=number], select { background: #0e1013; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; font: inherit; font-variant-numeric: tabular-nums; }
+.linha-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 12px; }
+.linha-controles label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+button.mini { padding: 2px 8px; font-size: 13px; }
+button.add { align-self: center; color: var(--razer); }
+button.primario { background: var(--razer); color: #0b1a07; border-color: var(--razer); font-weight: 600; }
+button.primario:disabled { background: #222730; color: var(--muted); border-color: var(--line); }
+.sucesso { color: var(--razer); font-size: 13.5px; }
 .teclado { width: 100%; height: auto; background: #12151a; border-radius: 10px; padding: 6px; font-family: "Segoe UI", sans-serif; }
 .efeitos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
 .efeito { display: flex; align-items: center; gap: 6px; background: var(--tile); border-radius: 8px; padding: 6px 9px; font-size: 13px; }

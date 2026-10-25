@@ -1,5 +1,6 @@
 import Stat, { simNao } from "./Stat.jsx";
 import MouseTest from "./MouseTest.jsx";
+import RazerControls from "./RazerControls.jsx";
 
 function corBateria(pct) {
   if (pct <= 15) return "var(--bad)";
@@ -43,7 +44,7 @@ function InfoMouse({ razer, carregando }) {
   );
 }
 
-export default function RazerCard({ dispositivo, razer, windows, carregando }) {
+export default function RazerCard({ dispositivo, razer, windows, carregando, aoAplicar }) {
   const nome = dispositivo?.nomes.find((n) => n.startsWith("Razer")) || "Mouse Razer";
   const m = windows?.mouse;
   return (
@@ -57,6 +58,13 @@ export default function RazerCard({ dispositivo, razer, windows, carregando }) {
 
       <h3>Configuração salva no mouse</h3>
       <InfoMouse razer={razer} carregando={carregando} />
+
+      {razer?.ok && (
+        <>
+          <h3>Mudar configuração do mouse</h3>
+          <RazerControls razer={razer} aoAplicar={aoAplicar} />
+        </>
+      )}
 
       <h3>Configuração do Windows para o mouse</h3>
       {m && (

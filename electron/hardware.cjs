@@ -192,6 +192,48 @@ async function configRazer() {
   }
 }
 
+// Gravação no mouse Razer (mesmos comandos do openrazer, salvos na memória do mouse).
+const DPI_MIN = 100, DPI_MAX = 16000;
+const POLLING_CODIGO = { 1000: 0x01, 500: 0x02, 125: 0x08 };
+const be16 = (v) => [(v >> 8) & 0xff, v & 0xff];
+
+function validarRazer({ estagios, estagioAtivo, pollingHz, desligarAposMin }) {
+  if (!Array.isArray(estagios) || estagios.length < 1 || estagios.length > 5) throw new Error("Use de 1 a 5 estágios de DPI.");
+  const dpis = estagios.map((d) => Math.round(Number(d) / 50) * 50);
+  if (dpis.some((d) => !(d >= DPI_MIN && d <= DPI_MAX))) throw new Error(`O DPI precisa ficar entre ${DPI_MIN} e ${DPI_MAX}.`);
+  if (!(estagioAtivo >= 1 && estagioAtivo <= dpis.length)) throw new Error("Estágio ativo inválido.");
+  if (!(pollingHz in POLLING_CODIGO)) throw new Error("Polling rate inválido.");
+  if (!(desligarAposMin >= 1 && desligarAposMin <= 15)) throw new Error("O tempo para desligar precisa ficar entre 1 e 15 minutos.");
+  return { dpis, estagioAtivo, pollingHz, desligarAposMin };
+}
+
+async function aplicarRazer(pedido) {
+  const cfg = validarRazer(pedido);
+  const h = await abrirRazer();
+  if (!h) return { ok: false, erro: "Não consegui abrir o mouse. Feche o Razer Synapse e tente de novo." };
+  try {
+    let tid = null;
+    for (const t of [0x1f, 0xff, 0x3f]) {
+      if (await comando(h, t, 0x04, 0x85, 0x07, [0x01])) { tid = t; break; }
+    }
+    if (tid === null) return { ok: false, erro: "O mouse não respondeu (pode estar dormindo — mexa nele e tente de novo)." };
+
+    const falhas = [];
+    // Estágios: [armazenar, ativo, quantidade, depois 7 bytes por estágio: nº, X, Y, 0, 0]
+    const args = [0x01, cfg.estagioAtivo, cfg.dpis.length];
+    cfg.dpis.forEach((d, i) => args.push(i, ...be16(d), ...be16(d), 0, 0));
+    if (!(await comando(h, tid, 0x04, 0x06, 0x26, args))) falhas.push("estágios de DPI");
+    const ativo = cfg.dpis[cfg.estagioAtivo - 1];
+    if (!(await comando(h, tid, 0x04, 0x05, 0x07, [0x01, ...be16(ativo), ...be16(ativo), 0, 0]))) falhas.push("DPI atual");
+    if (!(await comando(h, tid, 0x00, 0x05, 0x01, [POLLING_CODIGO[cfg.pollingHz]]))) falhas.push("polling rate");
+    if (!(await comando(h, tid, 0x07, 0x03, 0x02, be16(cfg.desligarAposMin * 60)))) falhas.push("tempo para desligar");
+    if (falhas.length) return { ok: false, erro: `O mouse recusou: ${falhas.join(", ")}.` };
+    return { ok: true };
+  } finally {
+    CloseHandle(h);
+  }
+}
+
 // ---------------------------------------------------------------- Marvo (perfil do app oficial)
 // Formato descoberto por engenharia reversa do "MARVO KG985W Driver" (OemDrv.exe):
 //  - Dev\kb\KB.ini descreve o teclado: teclas [KEY] (retângulo, código padrão, nº do LED),
@@ -376,4 +418,4 @@ async function configMarvo() {
   return info;
 }
 
-module.exports = { configWindows, dispositivos, configRazer, configMarvo };
+module.exports = { configWindows, dispositivos, configRazer, aplicarRazer, configMarvo };
